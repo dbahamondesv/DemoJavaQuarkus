@@ -1,0 +1,17 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "java",
+      "request": "launch",
+      "name": "Quarkus Dev Mode",
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "runtimeExecutable": "bash",
+      "args": [
+        "-c",
+        "./mvnw quarkus:dev && xdg-open http://localhost:8080"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+-- Crear un nuevo rol (usuario) con contraseña
+CREATE ROLE mi_usuario WITH
+  LOGIN
+  PASSWORD 'mi_contraseña';
+
+-- Crear una nueva base de datos y asignar el propietario
+CREATE DATABASE mi_base_de_datos
+  WITH OWNER = mi_usuario
+       ENCODING = 'UTF8'
+       LC_COLLATE = 'es_CL.UTF-8'
+       LC_CTYPE = 'es_CL.UTF-8'
+       TEMPLATE = template0;
+
+-- Otorgar todos los privilegios sobre la base de datos al usuario
+GRANT ALL PRIVILEGES ON DATABASE mi_base_de_datos TO mi_usuario;
