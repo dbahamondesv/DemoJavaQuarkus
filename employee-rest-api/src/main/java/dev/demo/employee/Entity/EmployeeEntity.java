@@ -1,7 +1,5 @@
 package dev.demo.employee.Entity;
 
-import io.quarkus.Generated;
-import io.quarkus.hibernate.orm.panache.PanacheEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -10,12 +8,13 @@ import jakarta.persistence.Table;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotEmpty;
 
-
 /**
  * Example JPA entity defined as a Panache Entity.
- * An ID field of Long type is provided, if you want to define your own ID field extends <code>PanacheEntityBase</code> instead.
+ * An ID field of Long type is provided, if you want to define your own ID field
+ * extends <code>PanacheEntityBase</code> instead.
  *
- * This uses the active record pattern, you can also use the repository pattern instead:
+ * This uses the active record pattern, you can also use the repository pattern
+ * instead:
  * .
  *
  * Usage (more example on the documentation)
@@ -27,36 +26,36 @@ import jakarta.validation.constraints.NotEmpty;
  *         entity1.persist();
  *
  *         List<MyEntity> entities = MyEntity.listAll();
- *     }
+ * }
  * }
  */
-@Entity(name= "Employee")
-@Table(name= "employee")
+@Entity(name = "Employee")
+@Table(name = "employee")
 public class EmployeeEntity {
     @Id
     @GeneratedValue(strategy = jakarta.persistence.GenerationType.IDENTITY)
-    @Column(name="employee_id")
+    @Column(name = "employee_id")
     private long employeeId;
 
     @NotEmpty
-    @Column(name="first_name")
+    @Column(name = "first_name")
     private String firstName;
 
-    @Column(name="middle_name")
+    @Column(name = "middle_name")
     private String middleName;
 
     @NotEmpty
-    @Column(name="last_name")
+    @Column(name = "last_name")
     private String lastName;
 
-    @Column(name="department")
+    @Column(name = "department")
     private String department;
 
     @Email
-    @Column(name="email_address")
+    @Column(name = "email_address")
     private String emailAddress;
 
-    @Column(name="phone_number")
+    @Column(name = "phone_number")
     private String phoneNumber;
 
     public String geEmployeeId() {
