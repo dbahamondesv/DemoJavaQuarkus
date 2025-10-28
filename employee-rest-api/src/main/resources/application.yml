@@ -1,2 +1,33 @@
-greeting:
-  message: "hello"
+quarkus:
+  banner:
+    enabled: false
+  datasource:
+    db-kind: postgresql
+    devservices:
+      image-name: postgres:16
+  hibernate-orm:
+    database:
+      generation: none
+
+"%dev":
+  quarkus:
+    log:
+      level: INFO
+      category:
+        "dev.damian":
+          level: DEBUG
+    hibernate-orm:
+      log:
+        sql: true
+    flyway:
+      migrate-at-start: true
+      locations: db/migration
+
+mp:
+  openapi:
+    extensions:
+      smallrye:
+        info:
+          title: Employee API
+          version: 0.0.1
+          description: REST API for employees data

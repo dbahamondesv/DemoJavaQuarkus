@@ -22,8 +22,8 @@ public class Employee {
 
     private String phoneNumber;
 
-    public String geEmployeeId() {
-        return String.valueOf(employeeId);
+    public Long getEmployeeId() {
+        return employeeId;
     }
 
     public String getFirstName() {

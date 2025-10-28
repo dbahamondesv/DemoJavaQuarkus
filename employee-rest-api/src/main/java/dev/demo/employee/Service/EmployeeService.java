@@ -52,7 +52,7 @@ public class EmployeeService {
 
         if(OptionalEmployeeEntity.isEmpty())
         {
-            throw new NotFoundException(String.format("No Employee found with employeeId[%s] " + employee.geEmployeeId()));
+            throw new NotFoundException(String.format("No Employee found with employeeId[%s] " + employee.getEmployeeId()));
         }
 
         EmployeeEntity employeeEntity = OptionalEmployeeEntity.get();

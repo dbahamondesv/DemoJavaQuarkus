@@ -5,5 +5,5 @@ CREATE TABLE employee(
     last_name VARCHAR(50) NOT NULL,
     department VARCHAR(50),
     email_address VARCHAR(50), 
-    phome_number VARCHAR(50)
+    phone_number VARCHAR(50)
 );
