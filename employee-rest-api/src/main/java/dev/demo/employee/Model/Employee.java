@@ -17,7 +17,6 @@ public class Employee {
 
     private String department;
 
-    @Email
     private String emailAddress;
 
     private String phoneNumber;

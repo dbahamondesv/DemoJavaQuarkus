@@ -3,8 +3,18 @@ quarkus:
     enabled: false
   datasource:
     db-kind: postgresql
+    username: fox
+    password: F0xF1r3
+    jdbc:
+      url: jdbc:postgresql://localhost:5432/employees_db
     devservices:
-      image-name: postgres:16
+      enabled: false  # Deshabilitamos devservices ya que tenemos BD externa
+  flyway:
+    migrate-at-start: false
+    baseline-on-migrate: true
+    locations: classpath:db/migration
+    validate-on-migrate: true
+    clean-on-validation-error: true  # Solo en desarrollo
   hibernate-orm:
     database:
       generation: none
@@ -19,9 +29,6 @@ quarkus:
     hibernate-orm:
       log:
         sql: true
-    flyway:
-      migrate-at-start: true
-      locations: db/migration
 
 mp:
   openapi:
