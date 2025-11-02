@@ -22,13 +22,10 @@ quarkus:
 "%dev":
   quarkus:
     log:
-      level: INFO
-      category:
-        "dev.damian":
-          level: DEBUG
-    hibernate-orm:
-      log:
-        sql: true
+      level: DEBUG
+    debug:
+      port: 5005
+      suspend: false
 
 mp:
   openapi:

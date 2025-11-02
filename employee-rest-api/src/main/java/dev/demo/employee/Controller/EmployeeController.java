@@ -136,30 +136,30 @@ public class EmployeeController {
 
 
     @DELETE
-    @Operation(summary = "Delete an employee")
+    @Path("/{employeeId}")
+    @Operation(summary = "Delete an employee by ID")
     @APIResponses(
             value = {
                     @APIResponse(
                             responseCode = "200",
                             description = "Employee deleted successfully",
-                            content = @Content(mediaType = "application/json",
-                                    schema = @Schema(type = SchemaType.OBJECT, implementation = Employee.class))),
+                            content = @Content(mediaType = "application/json")),
                     @APIResponse(
                             responseCode = "404",
                             description = "Employee not found",
                             content = @Content(mediaType = "application/json")),
             }
     )
-    public Response deleteEmployee(@RequestBody(required = true) @Valid Employee employee) {
-        Optional<Employee> optionalEmployee = employeeService.findById(employee.getEmployeeId());
+    public Response deleteEmployee(@PathParam("employeeId") Long employeeId) {
+        Optional<Employee> optionalEmployee = employeeService.findById(employeeId);
 
         if(optionalEmployee.isPresent()){
-            employeeService.delete(employee);
-            LOGGER.info("Employee deleted with id " + employee.getEmployeeId());
+            employeeService.delete(optionalEmployee.get());
+            LOGGER.info("Employee deleted with id " + employeeId);
             return Response.ok().build();
         }
         else{
-            LOGGER.debug("No employee found with id " + employee.getEmployeeId());
+            LOGGER.debug("No employee found with id " + employeeId);
             return Response.status(Response.Status.NOT_FOUND).build();
         }
     }

@@ -59,10 +59,10 @@ public class EmployeeService {
 
         employeeEntity.setEmployeeId(employeeId);
         employeeEntity.setFirstName(employee.getFirstName());
-        employeeEntity.setMidddleName(employee.getMidddleName());
+        employeeEntity.setMiddleName(employee.getMiddleName());
         employeeEntity.setLastName(employee.getLastName());
         employeeEntity.setDepartment(employee.getDepartment());
-        employeeEntity.setEmailAddress(employee.getEmail());
+        employeeEntity.setEmailAddress(employee.getEmailAddress());
         employeeEntity.setPhoneNumber(employee.getPhoneNumber());
 
         employeeRepository.persist(employeeEntity);

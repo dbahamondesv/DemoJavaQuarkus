@@ -1,0 +1,12 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Start Browser",
+            "type": "shell",
+            "command": "xdg-open",
+            "args": ["http://localhost:8080/q/swagger-ui"],
+            "problemMatcher": []
+        }
+    ]
+}

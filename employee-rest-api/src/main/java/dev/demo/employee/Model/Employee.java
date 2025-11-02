@@ -1,16 +1,22 @@
 package dev.demo.employee.Model;
 
-import jakarta.validation.constraints.Email;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.AllArgsConstructor;
 import jakarta.validation.constraints.NotEmpty;
 
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 public class Employee {
-    
-    private long employeeId;
+    private Long employeeId;
 
     @NotEmpty
     private String firstName;
 
-    private String midddleName;
+    private String middleName;
 
     @NotEmpty
     private String lastName;
@@ -20,32 +26,4 @@ public class Employee {
     private String emailAddress;
 
     private String phoneNumber;
-
-    public Long getEmployeeId() {
-        return employeeId;
-    }
-
-    public String getFirstName() {
-        return String.valueOf(firstName);
-    }
-
-    public String getMidddleName() {
-        return String.valueOf(midddleName);
-    }
-
-    public String getLastName() {
-        return String.valueOf(lastName);
-    }
-
-    public String getDepartment() {
-        return String.valueOf(department);
-    }
-
-    public String getPhoneNumber() {
-        return String.valueOf(phoneNumber);
-    }
-
-    public String getEmail() {
-        return String.valueOf(emailAddress);
-    }
 }

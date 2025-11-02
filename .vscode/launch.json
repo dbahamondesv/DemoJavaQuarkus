@@ -3,15 +3,11 @@
   "configurations": [
     {
       "type": "java",
-      "request": "launch",
-      "name": "Quarkus Dev Mode",
-      "cwd": "${workspaceFolder}",
-      "console": "integratedTerminal",
-      "runtimeExecutable": "bash",
-      "args": [
-        "-c",
-        "./mvnw quarkus:dev && xdg-open http://localhost:8080"
-      ]
+      "name": "Debug Quarkus application",
+      "request": "attach",
+      "hostName": "localhost",
+      "port": 5005,
+      "preLaunchTask": "Start Browser"
     }
   ]
 }
