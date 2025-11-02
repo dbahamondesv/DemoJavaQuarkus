@@ -13,8 +13,9 @@ import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
 
 import dev.demo.employee.Model.Employee;
 import dev.demo.employee.Service.EmployeeService;
-import io.vertx.core.impl.logging.Logger;
-import io.vertx.core.impl.logging.LoggerFactory;
+import dev.demo.employee.Utils.ErrorResponse;
+import io.smallrye.mutiny.Uni;
+import io.smallrye.mutiny.infrastructure.Infrastructure;
 import jakarta.validation.Valid;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
@@ -26,6 +27,10 @@ import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 
 @Path("api/v1/employees")
 @Produces(MediaType.APPLICATION_JSON)
@@ -69,17 +74,34 @@ public class EmployeeController {
                     content = @Content(mediaType = "applicastion/json"))
                }
     )
-    public Response getEmployeeById(@PathParam("employeeId") Long employeeId) {
-        Optional<Employee> optionalEmployee = employeeService.findById(employeeId);
+    public Uni<Response> getEmployeeById(@PathParam("employeeId") Long employeeId) {
 
-        if(optionalEmployee.isPresent()){
-            LOGGER.info("Found employee " + optionalEmployee.get());
-            return Response.ok(optionalEmployee.get()).build();
-        }
-        else{
-            LOGGER.debug("No employee found with id " + employeeId);
-            return Response.status(Response.Status.NOT_FOUND).build();
-        }
+        LOGGER.debug("Starting request to fetch employee with ID: {}", employeeId);
+
+        return Uni.createFrom().item(() -> employeeService.findById(employeeId))
+            // Transformamos el Optional (o el resultado) en Response
+            .onItem().transform(optionalEmployee -> { 
+                if (optionalEmployee.isPresent()) {
+                    Employee employee = optionalEmployee.get();
+                    LOGGER.info("Found employee - ID: {}, Name: {}, Department: {}", 
+                        employee.getEmployeeId(),
+                        employee.getFirstName() + " " + employee.getMiddleName() + " " + employee.getLastName(),
+                        employee.getDepartment());
+                    return Response.ok(employee).build();
+                } else {
+                    LOGGER.warn("Employee not found with ID: {}", employeeId);
+                    return Response.status(Response.Status.NOT_FOUND)
+                                   .entity(new ErrorResponse("Employee not found", 404))
+                                   .build();
+                }
+            })
+            // Registrar errores y devolver 500 en caso de fallo inesperado
+            .onFailure().invoke(t -> LOGGER.error("Error processing request for employee ID: {} - {}", employeeId, t.getMessage(), t))
+            .onFailure().recoverWithItem(t -> 
+                Response.serverError()
+                        .entity(new ErrorResponse("Internal Server Error", 500))
+                        .build()
+            );
     }
 
     @POST

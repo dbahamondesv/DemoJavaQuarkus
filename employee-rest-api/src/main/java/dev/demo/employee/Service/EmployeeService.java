@@ -8,13 +8,21 @@ import dev.demo.employee.Entity.EmployeeEntity;
 import dev.demo.employee.Mappers.EmployeeMapper;
 import dev.demo.employee.Model.Employee;
 import dev.demo.employee.Repository.EmployeeRepository;
+import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.NotFoundException;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @ApplicationScoped
 public class EmployeeService {
     
+    private static final Logger LOGGER = LoggerFactory.getLogger(EmployeeService.class);
+    
+    @Inject
     private final EmployeeRepository employeeRepository;
     private final EmployeeMapper employeeMapper;
 
@@ -24,25 +32,46 @@ public class EmployeeService {
         this.employeeMapper = employeeMapper;  
     }
 
-    public List<Employee> findAll()
+    public Uni<List<Employee>> findAll()
     {
-        return employeeRepository.findAll()
-                .stream()
+        LOGGER.debug("Service.findAll() - init");
+
+        return Uni.createFrom().item(() -> employeeRepository.findAll())
+                .map(entities -> entities.stream()
                 .map(employeeMapper::toDomain)
-                .collect(Collectors.toList());
+                .collect(Collectors.toList()))
+                .invoke(list -> LOGGER.info("Service.findAll() - found {} employees", list.size()))
+                .onFailure().invoke(f -> LOGGER.error("Service.findAll() - failed", f));
+        
     }
 
-    public Optional<Employee> findById(long employeeId)
+    public Uni<Optional<Employee>> findById(long employeeId)
     {
-            return employeeRepository.findByIdOptional(employeeId)
-                   .map(employeeMapper::toDomain);
+        LOGGER.debug("Service: findById({})", employeeId);
+        return employeeRepository.findByIdOptional(employeeId)
+                .map(opt -> opt.map(employeeMapper::toDomain))
+                .invoke(opt -> {
+                    if(opt.isPresent()){
+                        LOGGER.info("Service: findById({}) - found", employeeId);
+                    } else {
+                        LOGGER.warn("Service: findById({}) - not found", employeeId);
+                    }
+                })
+                .onFailure().invoke(f -> LOGGER.error("Service: findById({}) - failed", employeeId, f));
     }
 
-    @Transactional
-    public void save(Employee employee)
+    
+    public Uni<Employee> save(Employee employee)
     {
-        EmployeeEntity employeeEntity = employeeMapper.toEntity(employee);
-        employeeRepository.persist(employeeEntity);
+        LOGGER.debug("Service: save() - init");
+        var entity = employeeMapper.toEntity(employee);
+
+        return Uni.createFrom().item(()->{
+            employeeRepository.persist(entity);
+            return employeeMapper.toDomain(entity);
+        })
+        .invoke(saved -> LOGGER.info("Service: save() - saved employee succesfully"))
+        .onFailure().invoke(f -> LOGGER.error("Service: save() - failed", f));
     }
 
     @Transactional
