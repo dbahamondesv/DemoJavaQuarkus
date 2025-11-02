@@ -157,3 +157,165 @@ src/
 ## Licencia
 
 Este proyecto está licenciado bajo la Licencia MIT - ver el archivo [LICENSE.md](LICENSE.md) para más detalles.
+
+## ENG ##
+
+# Employee REST API
+
+A REST API developed with Quarkus for employee management. Provides CRUD operations (Create, Read, Update, Delete) for employee entities with PostgreSQL persistence.
+
+## Technologies
+
+- Java 21
+- [Quarkus](https://quarkus.io/) 3.28.5
+- PostgreSQL
+- Flyway for database migrations
+- MapStruct for object mapping
+- Lombok for boilerplate code reduction
+- OpenAPI (Swagger) for documentation
+- Docker for containerization
+
+## Features
+
+- Complete CRUD operations for employees
+- Data validation with Hibernate Validator
+- API documentation with OpenAPI/Swagger
+- Automatic database migrations with Flyway
+- Native build support with GraalVM
+
+## Prerequisites
+
+- JDK 21
+- Maven 3.9+
+- PostgreSQL 
+- Docker (optional)
+
+## Setup
+
+1. Create PostgreSQL database:
+
+```sql
+CREATE DATABASE employees_db;
+```
+
+2. Configure database credentials in `src/main/resources/application.yml`:
+
+```yaml
+quarkus:
+  datasource:
+    db-kind: postgresql
+    username: your_username
+    password: your_password
+    jdbc:
+      url: jdbc:postgresql://localhost:5432/employees_db
+```
+
+## Running the Application
+
+### Development Mode
+
+```bash
+./mvnw quarkus:dev
+```
+
+The application will be available at http://localhost:8080
+Swagger UI interface will be at http://localhost:8080/q/swagger-ui
+Dev UI interface will be available at http://localhost:8080/q/dev/
+
+### Build and Run for Production
+
+```bash
+./mvnw package
+java -jar target/quarkus-app/quarkus-run.jar
+```
+
+### Build Über-jar
+
+```bash
+./mvnw package -Dquarkus.package.jar.type=uber-jar
+java -jar target/*-runner.jar
+```
+
+### Build Native Image
+
+```bash
+./mvnw package -Dnative
+```
+
+Or if you don't have GraalVM installed:
+
+```bash
+./mvnw package -Dnative -Dquarkus.native.container-build=true
+```
+
+Run the native executable:
+```bash
+./target/employee-rest-api-1.0.0-SNAPSHOT-runner
+```
+
+### Docker
+
+Build image:
+
+```bash
+docker build -f src/main/docker/Dockerfile.jvm -t employee-rest-api:latest .
+```
+
+Run container:
+
+```bash
+docker run -i --rm -p 8080:8080 employee-rest-api:latest
+```
+
+## API Endpoints
+
+| Method | URL | Description |
+|--------|-----|-------------|
+| GET | `/api/v1/employees` | Get all employees |
+| GET | `/api/v1/employees/{id}` | Get employee by ID |
+| POST | `/api/v1/employees` | Create new employee |
+| PUT | `/api/v1/employees` | Update existing employee |
+| DELETE | `/api/v1/employees/{id}` | Delete employee |
+
+## Project Structure
+
+```
+src/
+├── main/
+│   ├── docker/           # Dockerfile files
+│   ├── java/            # Java source code
+│   │   └── dev/demo/employee/
+│   │       ├── Controller/  # REST Controllers
+│   │       ├── Entity/      # JPA Entities
+│   │       ├── Mappers/     # MapStruct Mappers
+│   │       ├── Model/       # DTOs
+│   │       ├── Repository/  # Repositories
+│   │       └── Service/     # Business Logic
+│   └── resources/
+│       ├── application.yml  # Configuration
+│       └── db/migration/    # Flyway Scripts
+└── test/                    # Tests
+```
+
+## Related Guides
+
+- [Hibernate ORM with Panache](https://quarkus.io/guides/hibernate-orm-panache)
+- [REST](https://quarkus.io/guides/rest)
+- [REST Jackson](https://quarkus.io/guides/rest#json-serialisation)
+- [Hibernate Validator](https://quarkus.io/guides/validation)
+- [Flyway](https://quarkus.io/guides/flyway)
+- [SmallRye OpenAPI](https://quarkus.io/guides/openapi-swaggerui)
+- [JDBC PostgreSQL](https://quarkus.io/guides/datasource)
+- [YAML Configuration](https://quarkus.io/guides/config-yaml)
+
+## Contributing
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details
