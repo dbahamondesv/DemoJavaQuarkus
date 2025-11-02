@@ -1,0 +1,159 @@
+# Employee REST API
+
+Una API REST desarrollada con Quarkus para la gestión de empleados. Proporciona operaciones CRUD (Crear, Leer, Actualizar, Eliminar) para entidades de empleados con persistencia en PostgreSQL.
+
+## Tecnologías
+
+- Java 21
+- [Quarkus](https://quarkus.io/) 3.28.5
+- PostgreSQL
+- Flyway para migraciones de base de datos
+- MapStruct para mapeo de objetos
+- Lombok para reducción de código boilerplate
+- OpenAPI (Swagger) para documentación
+- Docker para contenerización
+
+## Características
+
+- Operaciones CRUD completas para empleados
+- Validación de datos con Hibernate Validator
+- Documentación de API con OpenAPI/Swagger
+- Migraciones de base de datos automáticas con Flyway
+- Soporte para construcción nativa con GraalVM
+
+## Requisitos Previos
+
+- JDK 21
+- Maven 3.9+
+- PostgreSQL 
+- Docker (opcional)
+
+## Configuración
+
+1. Crear la base de datos PostgreSQL:
+
+```sql
+CREATE DATABASE employees_db;
+```
+
+2. Configurar las credenciales de la base de datos en `src/main/resources/application.yml`:
+
+```yaml
+quarkus:
+  datasource:
+    db-kind: postgresql
+    username: tu_usuario
+    password: tu_password
+    jdbc:
+      url: jdbc:postgresql://localhost:5432/employees_db
+```
+
+## Ejecutar la Aplicación
+
+### Modo Desarrollo
+
+```bash
+./mvnw quarkus:dev
+```
+
+La aplicación estará disponible en http://localhost:8080
+La interfaz Swagger UI estará en http://localhost:8080/q/swagger-ui
+La interfaz Dev UI estará disponible en http://localhost:8080/q/dev/
+
+### Construir y Ejecutar en Producción
+
+```bash
+./mvnw package
+java -jar target/quarkus-app/quarkus-run.jar
+```
+
+### Construir Über-jar
+
+```bash
+./mvnw package -Dquarkus.package.jar.type=uber-jar
+java -jar target/*-runner.jar
+```
+
+### Construir Imagen Nativa
+
+```bash
+./mvnw package -Dnative
+```
+
+O si no tienes GraalVM instalado:
+
+```bash
+./mvnw package -Dnative -Dquarkus.native.container-build=true
+```
+
+Ejecutar el ejecutable nativo:
+```bash
+./target/employee-rest-api-1.0.0-SNAPSHOT-runner
+```
+
+### Docker
+
+Construir imagen:
+
+```bash
+docker build -f src/main/docker/Dockerfile.jvm -t employee-rest-api:latest .
+```
+
+Ejecutar contenedor:
+
+```bash
+docker run -i --rm -p 8080:8080 employee-rest-api:latest
+```
+
+## API Endpoints
+
+| Método | URL | Descripción |
+|--------|-----|-------------|
+| GET | `/api/v1/employees` | Obtener todos los empleados |
+| GET | `/api/v1/employees/{id}` | Obtener empleado por ID |
+| POST | `/api/v1/employees` | Crear nuevo empleado |
+| PUT | `/api/v1/employees` | Actualizar empleado existente |
+| DELETE | `/api/v1/employees/{id}` | Eliminar empleado |
+
+## Estructura del Proyecto
+
+```
+src/
+├── main/
+│   ├── docker/           # Archivos Dockerfile
+│   ├── java/            # Código fuente Java
+│   │   └── dev/demo/employee/
+│   │       ├── Controller/  # Controladores REST
+│   │       ├── Entity/      # Entidades JPA
+│   │       ├── Mappers/     # Mappers MapStruct
+│   │       ├── Model/       # DTOs
+│   │       ├── Repository/  # Repositorios
+│   │       └── Service/     # Lógica de negocio
+│   └── resources/
+│       ├── application.yml  # Configuración
+│       └── db/migration/    # Scripts Flyway
+└── test/                    # Tests
+```
+
+## Guías Relacionadas
+
+- [Hibernate ORM con Panache](https://quarkus.io/guides/hibernate-orm-panache)
+- [REST](https://quarkus.io/guides/rest)
+- [REST Jackson](https://quarkus.io/guides/rest#json-serialisation)
+- [Hibernate Validator](https://quarkus.io/guides/validation)
+- [Flyway](https://quarkus.io/guides/flyway)
+- [SmallRye OpenAPI](https://quarkus.io/guides/openapi-swaggerui)
+- [JDBC PostgreSQL](https://quarkus.io/guides/datasource)
+- [Configuración YAML](https://quarkus.io/guides/config-yaml)
+
+## Contribuir
+
+1. Fork el repositorio
+2. Crea una rama para tu feature (`git checkout -b feature/AmazingFeature`)
+3. Commit tus cambios (`git commit -m 'Add some AmazingFeature'`)
+4. Push a la rama (`git push origin feature/AmazingFeature`)
+5. Abre un Pull Request
+
+## Licencia
+
+Este proyecto está licenciado bajo la Licencia MIT - ver el archivo [LICENSE.md](LICENSE.md) para más detalles.

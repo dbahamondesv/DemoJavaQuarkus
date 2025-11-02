@@ -1,159 +1,90 @@
-# Employee REST API
+# employee-rest-api
 
-Una API REST desarrollada con Quarkus para la gestión de empleados. Proporciona operaciones CRUD (Crear, Leer, Actualizar, Eliminar) para entidades de empleados con persistencia en PostgreSQL.
+This project uses Quarkus, the Supersonic Subatomic Java Framework.
 
-## Tecnologías
+If you want to learn more about Quarkus, please visit its website: <https://quarkus.io/>.
 
-- Java 21
-- [Quarkus](https://quarkus.io/) 3.28.5
-- PostgreSQL
-- Flyway para migraciones de base de datos
-- MapStruct para mapeo de objetos
-- Lombok para reducción de código boilerplate
-- OpenAPI (Swagger) para documentación
-- Docker para contenerización
+## Running the application in dev mode
 
-## Características
+You can run your application in dev mode that enables live coding using:
 
-- Operaciones CRUD completas para empleados
-- Validación de datos con Hibernate Validator
-- Documentación de API con OpenAPI/Swagger
-- Migraciones de base de datos automáticas con Flyway
-- Soporte para construcción nativa con GraalVM
-
-## Requisitos Previos
-
-- JDK 21
-- Maven 3.9+
-- PostgreSQL 
-- Docker (opcional)
-
-## Configuración
-
-1. Crear la base de datos PostgreSQL:
-
-```sql
-CREATE DATABASE employees_db;
-```
-
-2. Configurar las credenciales de la base de datos en `src/main/resources/application.yml`:
-
-```yaml
-quarkus:
-  datasource:
-    db-kind: postgresql
-    username: tu_usuario
-    password: tu_password
-    jdbc:
-      url: jdbc:postgresql://localhost:5432/employees_db
-```
-
-## Ejecutar la Aplicación
-
-### Modo Desarrollo
-
-```bash
+```shell script
 ./mvnw quarkus:dev
 ```
 
-La aplicación estará disponible en http://localhost:8080
-La interfaz Swagger UI estará en http://localhost:8080/q/swagger-ui
-La interfaz Dev UI estará disponible en http://localhost:8080/q/dev/
+> **_NOTE:_**  Quarkus now ships with a Dev UI, which is available in dev mode only at <http://localhost:8080/q/dev/>.
 
-### Construir y Ejecutar en Producción
+## Packaging and running the application
 
-```bash
+The application can be packaged using:
+
+```shell script
 ./mvnw package
-java -jar target/quarkus-app/quarkus-run.jar
 ```
 
-### Construir Über-jar
+It produces the `quarkus-run.jar` file in the `target/quarkus-app/` directory.
+Be aware that it’s not an _über-jar_ as the dependencies are copied into the `target/quarkus-app/lib/` directory.
 
-```bash
+The application is now runnable using `java -jar target/quarkus-app/quarkus-run.jar`.
+
+If you want to build an _über-jar_, execute the following command:
+
+```shell script
 ./mvnw package -Dquarkus.package.jar.type=uber-jar
-java -jar target/*-runner.jar
 ```
 
-### Construir Imagen Nativa
+The application, packaged as an _über-jar_, is now runnable using `java -jar target/*-runner.jar`.
 
-```bash
+## Creating a native executable
+
+You can create a native executable using:
+
+```shell script
 ./mvnw package -Dnative
 ```
 
-O si no tienes GraalVM instalado:
+Or, if you don't have GraalVM installed, you can run the native executable build in a container using:
 
-```bash
+```shell script
 ./mvnw package -Dnative -Dquarkus.native.container-build=true
 ```
 
-Ejecutar el ejecutable nativo:
-```bash
-./target/employee-rest-api-1.0.0-SNAPSHOT-runner
-```
+You can then execute your native executable with: `./target/employee-rest-api-1.0.0-SNAPSHOT-runner`
 
-### Docker
+If you want to learn more about building native executables, please consult <https://quarkus.io/guides/maven-tooling>.
 
-Construir imagen:
+## Related Guides
 
-```bash
-docker build -f src/main/docker/Dockerfile.jvm -t employee-rest-api:latest .
-```
+- Hibernate ORM with Panache ([guide](https://quarkus.io/guides/hibernate-orm-panache)): Simplify your persistence code for Hibernate ORM via the active record or the repository pattern
+- REST ([guide](https://quarkus.io/guides/rest)): A Jakarta REST implementation utilizing build time processing and Vert.x. This extension is not compatible with the quarkus-resteasy extension, or any of the extensions that depend on it.
+- REST Jackson ([guide](https://quarkus.io/guides/rest#json-serialisation)): Jackson serialization support for Quarkus REST. This extension is not compatible with the quarkus-resteasy extension, or any of the extensions that depend on it
+- Hibernate Validator ([guide](https://quarkus.io/guides/validation)): Validate object properties (field, getter) and method parameters for your beans (REST, CDI, Jakarta Persistence)
+- Flyway ([guide](https://quarkus.io/guides/flyway)): Handle your database schema migrations
+- SmallRye OpenAPI ([guide](https://quarkus.io/guides/openapi-swaggerui)): Document your REST APIs with OpenAPI - comes with Swagger UI
+- JDBC Driver - PostgreSQL ([guide](https://quarkus.io/guides/datasource)): Connect to the PostgreSQL database via JDBC
+- YAML Configuration ([guide](https://quarkus.io/guides/config-yaml)): Use YAML to configure your Quarkus application
 
-Ejecutar contenedor:
+## Provided Code
 
-```bash
-docker run -i --rm -p 8080:8080 employee-rest-api:latest
-```
+### YAML Config
 
-## API Endpoints
+Configure your application with YAML
 
-| Método | URL | Descripción |
-|--------|-----|-------------|
-| GET | `/api/v1/employees` | Obtener todos los empleados |
-| GET | `/api/v1/employees/{id}` | Obtener empleado por ID |
-| POST | `/api/v1/employees` | Crear nuevo empleado |
-| PUT | `/api/v1/employees` | Actualizar empleado existente |
-| DELETE | `/api/v1/employees/{id}` | Eliminar empleado |
+[Related guide section...](https://quarkus.io/guides/config-reference#configuration-examples)
 
-## Estructura del Proyecto
+The Quarkus application configuration is located in `src/main/resources/application.yml`.
 
-```
-src/
-├── main/
-│   ├── docker/           # Archivos Dockerfile
-│   ├── java/            # Código fuente Java
-│   │   └── dev/demo/employee/
-│   │       ├── Controller/  # Controladores REST
-│   │       ├── Entity/      # Entidades JPA
-│   │       ├── Mappers/     # Mappers MapStruct
-│   │       ├── Model/       # DTOs
-│   │       ├── Repository/  # Repositorios
-│   │       └── Service/     # Lógica de negocio
-│   └── resources/
-│       ├── application.yml  # Configuración
-│       └── db/migration/    # Scripts Flyway
-└── test/                    # Tests
-```
+### Hibernate ORM
 
-## Guías Relacionadas
+Create your first JPA entity
 
-- [Hibernate ORM con Panache](https://quarkus.io/guides/hibernate-orm-panache)
-- [REST](https://quarkus.io/guides/rest)
-- [REST Jackson](https://quarkus.io/guides/rest#json-serialisation)
-- [Hibernate Validator](https://quarkus.io/guides/validation)
-- [Flyway](https://quarkus.io/guides/flyway)
-- [SmallRye OpenAPI](https://quarkus.io/guides/openapi-swaggerui)
-- [JDBC PostgreSQL](https://quarkus.io/guides/datasource)
-- [Configuración YAML](https://quarkus.io/guides/config-yaml)
+[Related guide section...](https://quarkus.io/guides/hibernate-orm)
 
-## Contribuir
+[Related Hibernate with Panache section...](https://quarkus.io/guides/hibernate-orm-panache)
 
-1. Fork el repositorio
-2. Crea una rama para tu feature (`git checkout -b feature/AmazingFeature`)
-3. Commit tus cambios (`git commit -m 'Add some AmazingFeature'`)
-4. Push a la rama (`git push origin feature/AmazingFeature`)
-5. Abre un Pull Request
 
-## Licencia
+### REST
 
-Este proyecto está licenciado bajo la Licencia MIT - ver el archivo [LICENSE.md](LICENSE.md) para más detalles.
+Easily start your REST Web Services
+
+[Related guide section...](https://quarkus.io/guides/getting-started-reactive#reactive-jax-rs-resources)
