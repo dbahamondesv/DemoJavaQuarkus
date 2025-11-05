@@ -1,13 +1,12 @@
 package dev.demo.employee.Service;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
-import dev.demo.employee.Entity.EmployeeEntity;
 import dev.demo.employee.Mappers.EmployeeMapper;
 import dev.demo.employee.Model.Employee;
 import dev.demo.employee.Repository.EmployeeRepository;
+import io.smallrye.mutiny.infrastructure.Infrastructure;
 import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -28,6 +27,7 @@ public class EmployeeService {
     private final EmployeeMapper employeeMapper;
 
     //Constructor Injection
+    @Inject
     public EmployeeService(EmployeeRepository employeeRepository, EmployeeMapper employeeMapper) {
         this.employeeRepository = employeeRepository;
         this.employeeMapper = employeeMapper;  
@@ -36,26 +36,29 @@ public class EmployeeService {
     public Uni<List<Employee>> findAll()
     {
         LOGGER.debug("Service.findAll() - init");
-
-        return Uni.createFrom().item(() -> employeeRepository.findAll())
+        // It's better to ensure blocking calls run on a worker thread
+        return Uni.createFrom().item(() -> employeeRepository.listAll())
                 .map(entities -> entities.stream()
                 .map(employeeMapper::toDomain)
                 .collect(Collectors.toList()))
                 .invoke(list -> LOGGER.info("Service.findAll() - found {} employees", list.size()))
-                .onFailure().invoke(f -> LOGGER.error("Service.findAll() - failed", f));
+                .runSubscriptionOn(Infrastructure.getDefaultWorkerPool())
+                .onFailure().invoke(f -> LOGGER.error("Service.findAll() - failed to find all employees", f));
         
     }
 
     public Uni<Employee> findById(long employeeId) {
-        LOGGER.debug("Service: findById({}) - inicio", employeeId);
+        LOGGER.debug("Service: findById({}) - start", employeeId);
         
         return Uni.createFrom().item(() -> employeeRepository.findByIdOptional(employeeId))
+                .runSubscriptionOn(Infrastructure.getDefaultWorkerPool())
                 .map(optionalEntity -> 
                     optionalEntity.orElseThrow(() -> 
                         new NotFoundException("Employee not found with id: " + employeeId)))
                 .map(entity -> employeeMapper.toDomain(entity))
-                .invoke(employee -> LOGGER.info("Service: findById({}) - encontrado empleado", employeeId))
-                .onFailure().invoke(f -> LOGGER.error("Service: findById({}) - error", employeeId, f));
+                .invoke(employee -> LOGGER.info("Service: findById({}) - employee found", employeeId))
+                .onFailure().invoke(f -> LOGGER.error("Service: findById({}) - failed to find employee", employeeId, f));
+
     }
 
     
@@ -65,40 +68,43 @@ public class EmployeeService {
         var entity = employeeMapper.toEntity(employee);
 
         return Uni.createFrom().item(()->{
+            // persist is a blocking operation
             employeeRepository.persist(entity);
             return employeeMapper.toDomain(entity);
         })
-        .invoke(saved -> LOGGER.info("Service: save() - saved employee succesfully"))
-        .onFailure().invoke(f -> LOGGER.error("Service: save() - failed", f));
+        .invoke(saved -> LOGGER.info("Service: save() - saved employee successfully"))
+        .runSubscriptionOn(Infrastructure.getDefaultWorkerPool())
+        .onFailure().invoke(f -> LOGGER.error("Service: save() - failed to save employee", f));
     }
 
     @Transactional
-    public void update(long employeeId, Employee employee)
-    {
-        Optional<EmployeeEntity> OptionalEmployeeEntity = employeeRepository.findByIdOptional(employeeId);
-
-        if(OptionalEmployeeEntity.isEmpty())
-        {
-            throw new NotFoundException(String.format("No Employee found with employeeId[%s] " + employee.getEmployeeId()));
-        }
-
-        EmployeeEntity employeeEntity = OptionalEmployeeEntity.get();
-
-        employeeEntity.setEmployeeId(employeeId);
-        employeeEntity.setFirstName(employee.getFirstName());
-        employeeEntity.setMiddleName(employee.getMiddleName());
-        employeeEntity.setLastName(employee.getLastName());
-        employeeEntity.setDepartment(employee.getDepartment());
-        employeeEntity.setEmailAddress(employee.getEmailAddress());
-        employeeEntity.setPhoneNumber(employee.getPhoneNumber());
-
-        employeeRepository.persist(employeeEntity);
+    public Uni<Employee> update(long employeeId, Employee employee) {
+        return Uni.createFrom().item(() -> employeeRepository.findByIdOptional(employeeId))
+                .runSubscriptionOn(Infrastructure.getDefaultWorkerPool())
+                .onItem().ifNotNull().transformToUni(entity -> {
+                    var updatedEntity = employeeMapper.toEntity(employee);
+                    updatedEntity.setEmployeeId(employeeId); // Make sure the ID doesn't change
+                    // Panache's persist() handles the update if the entity already exists
+                    employeeRepository.persist(updatedEntity);
+                    return Uni.createFrom().item(employeeMapper.toDomain(updatedEntity));
+                })
+                .onItem().ifNull().failWith(() -> new NotFoundException("Employee not found with id: " + employeeId))
+                .invoke(e -> LOGGER.info("Service: update({}) - employee updated successfully", employeeId))
+                .onFailure().invoke(f -> LOGGER.error("Service: update({}) - update failed", employeeId, f));
     }
 
     @Transactional
-    public void delete(Employee employee)
-    {
-        EmployeeEntity employeeEntity = employeeMapper.toEntity(employee);
-        employeeRepository.delete(employeeEntity);
+    public Uni<Boolean> deleteById(Long id) {
+        return Uni.createFrom().item(() -> employeeRepository.deleteById(id))
+                .runSubscriptionOn(Infrastructure.getDefaultWorkerPool())
+                .invoke(deleted -> {
+                    if (deleted) {
+                        LOGGER.info("Service: deleteById({}) - employee deleted successfully", id);
+                    } else {
+                        LOGGER.warn("Service: deleteById({}) - employee not found", id);
+                    }
+                })
+                .onFailure().invoke(f -> LOGGER.error("Service: deleteById({}) - failed to delete employee", id, f));
     }
+
 }
