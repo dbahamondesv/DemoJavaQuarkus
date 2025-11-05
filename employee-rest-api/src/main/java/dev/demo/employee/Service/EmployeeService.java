@@ -17,6 +17,7 @@ import jakarta.ws.rs.NotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+
 @ApplicationScoped
 public class EmployeeService {
     
@@ -45,19 +46,16 @@ public class EmployeeService {
         
     }
 
-    public Uni<Optional<Employee>> findById(long employeeId)
-    {
-        LOGGER.debug("Service: findById({})", employeeId);
-        return employeeRepository.findByIdOptional(employeeId)
-                .map(opt -> opt.map(employeeMapper::toDomain))
-                .invoke(opt -> {
-                    if(opt.isPresent()){
-                        LOGGER.info("Service: findById({}) - found", employeeId);
-                    } else {
-                        LOGGER.warn("Service: findById({}) - not found", employeeId);
-                    }
-                })
-                .onFailure().invoke(f -> LOGGER.error("Service: findById({}) - failed", employeeId, f));
+    public Uni<Employee> findById(long employeeId) {
+        LOGGER.debug("Service: findById({}) - inicio", employeeId);
+        
+        return Uni.createFrom().item(() -> employeeRepository.findByIdOptional(employeeId))
+                .map(optionalEntity -> 
+                    optionalEntity.orElseThrow(() -> 
+                        new NotFoundException("Employee not found with id: " + employeeId)))
+                .map(entity -> employeeMapper.toDomain(entity))
+                .invoke(employee -> LOGGER.info("Service: findById({}) - encontrado empleado", employeeId))
+                .onFailure().invoke(f -> LOGGER.error("Service: findById({}) - error", employeeId, f));
     }
 
     
