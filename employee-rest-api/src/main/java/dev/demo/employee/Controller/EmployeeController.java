@@ -56,8 +56,17 @@ public class EmployeeController {
             @APIResponse(responseCode = "200", description = "Get All Employees", content = @Content(mediaType = "application/json", schema = @Schema(type = SchemaType.ARRAY, implementation = Employee.class)))
     })
 
-    public Response getAllEmployees() {
-        return Response.ok(employeeService.findAll()).build();
+    public Uni<Response> getAllEmployees() {
+        LOGGER.debug("Starting request to fetch all employees");
+        return employeeService.findAll()
+        .onItem().transform(employees -> Response.ok(employees).build())
+        .onFailure().recoverWithItem(f -> {
+            LOGGER.error("Error fetching all employees", f);
+            return Response.serverError()
+                           .entity(new ErrorResponse("Internal Server Error", 500))
+                           .build();
+        });
+        LOGGER.debug("Completed request to fetch all employees");
     }
 
     @GET
