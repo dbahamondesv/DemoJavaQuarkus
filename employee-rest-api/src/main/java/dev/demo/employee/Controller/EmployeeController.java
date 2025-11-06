@@ -20,6 +20,7 @@ import jakarta.validation.Valid;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
+import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
@@ -127,33 +128,35 @@ public class EmployeeController {
     }
 
     @PUT
+    @Path("/{employeeId}")
     @Operation(summary = "Updates an existing employee")
     @APIResponses(
             value = {
                     @APIResponse(
-                            responseCode = "201",
+                            responseCode = "200",
                             description = "Employee updated successfully",
                             content = @Content(mediaType = "application/json",
                                     schema = @Schema(type = SchemaType.OBJECT, implementation = Employee.class))),
                     @APIResponse(
                             responseCode = "404",
                             description = "Employee not found",
-                            content = @Content(mediaType = "application/json")),
+                            content = @Content(mediaType = "application/json",
+                                    schema = @Schema(implementation = ErrorResponse.class))),
             }
     )
-    public Response updateEmployee(@RequestBody(required = true) @Valid Employee employee) {
-        Optional<Employee> optionalEmployee = employeeService.findById(employee.getEmployeeId());
-
-        if(optionalEmployee.isPresent()){
-            employeeService.update(employee.getEmployeeId(), employee);
-            URI employeeUrl = URI.create("/api/v1/employees/" +  employee.getEmployeeId());
-            LOGGER.info("Employee updated at URL {}" + employeeUrl);
-            return Response.created(employeeUrl).build();
-        }
-        else{
-            LOGGER.debug("No employee found with id " + employee.getEmployeeId());
-            return Response.status(Response.Status.NOT_FOUND).build();
-        }
+    public Uni<Response> updateEmployee(@PathParam("employeeId") Long employeeId, @RequestBody(required = true) @Valid Employee employee) {
+        LOGGER.debug("Controller: updateEmployee({}) - start", employeeId);
+        return employeeService.update(employeeId, employee)
+                .onItem().transform(updatedEmployee -> {
+                    LOGGER.info("Controller: updateEmployee({}) - employee updated successfully", employeeId);
+                    return Response.ok(updatedEmployee).build();
+                })
+                .onFailure(NotFoundException.class).recoverWithItem(f -> {
+                    LOGGER.warn("Controller: updateEmployee({}) - employee not found", employeeId);
+                    return Response.status(Response.Status.NOT_FOUND)
+                                   .entity(new ErrorResponse(f.getMessage(), Response.Status.NOT_FOUND.getStatusCode()))
+                                   .build();
+                });
     }
 
 
