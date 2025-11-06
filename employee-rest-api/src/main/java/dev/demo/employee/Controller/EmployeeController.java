@@ -172,17 +172,19 @@ public class EmployeeController {
                             content = @Content(mediaType = "application/json")),
             }
     )
-    public Response deleteEmployee(@PathParam("employeeId") Long employeeId) {
-        Optional<Employee> optionalEmployee = employeeService.findById(employeeId);
+    public Uni<Response> deleteEmployee(@PathParam("employeeId") Long employeeId){
 
-        if(optionalEmployee.isPresent()){
-            employeeService.delete(optionalEmployee.get());
-            LOGGER.info("Employee deleted with id " + employeeId);
-            return Response.ok().build();
-        }
-        else{
-            LOGGER.debug("No employee found with id " + employeeId);
-            return Response.status(Response.Status.NOT_FOUND).build();
-        }
+    return employeeService.findById(employeeId)
+        .onItem().transform(deleted -> {
+            if(deleted != null){
+                return Response.ok().build();
+            } else {
+                return Response.status(Response.Status.NOT_FOUND).build();
+            }
+        })
+        .onFailure().recoverWithItem(f -> {
+            LOGGER.error("Controller: deleteEmployee({}) - error deleting employee", employeeId, f);
+            return Response.serverError().build();
+        });
     }
 }
