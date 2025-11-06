@@ -1,8 +1,5 @@
 package dev.demo.employee.Controller;
 
-import java.net.URI;
-import java.util.Optional;
-
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.enums.SchemaType;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
@@ -15,7 +12,6 @@ import dev.demo.employee.Model.Employee;
 import dev.demo.employee.Service.EmployeeService;
 import dev.demo.employee.Utils.ErrorResponse;
 import io.smallrye.mutiny.Uni;
-import io.smallrye.mutiny.infrastructure.Infrastructure;
 import jakarta.inject.Inject;
 import jakarta.validation.Valid;
 import jakarta.ws.rs.Consumes;
@@ -66,7 +62,6 @@ public class EmployeeController {
                            .entity(new ErrorResponse("Internal Server Error", 500))
                            .build();
         });
-        LOGGER.debug("Completed request to fetch all employees");
     }
 
     @GET
@@ -89,31 +84,24 @@ public class EmployeeController {
     public Uni<Response> getEmployeeById(@PathParam("employeeId") Long employeeId) {
 
         LOGGER.debug("Starting request to fetch employee with ID: {}", employeeId);
-
-        return Uni.createFrom().item(() -> employeeService.findById(employeeId))
-            // Transformamos el Optional (o el resultado) en Response
-            .onItem().transform(optionalEmployee -> { 
-                if (optionalEmployee.isPresent()) {
-                    Employee employee = optionalEmployee.get();
-                    LOGGER.info("Found employee - ID: {}, Name: {}, Department: {}", 
-                        employee.getEmployeeId(),
-                        employee.getFirstName() + " " + employee.getMiddleName() + " " + employee.getLastName(),
-                        employee.getDepartment());
-                    return Response.ok(employee).build();
-                } else {
-                    LOGGER.warn("Employee not found with ID: {}", employeeId);
-                    return Response.status(Response.Status.NOT_FOUND)
-                                   .entity(new ErrorResponse("Employee not found", 404))
-                                   .build();
-                }
-            })
-            // Registrar errores y devolver 500 en caso de fallo inesperado
-            .onFailure().invoke(t -> LOGGER.error("Error processing request for employee ID: {} - {}", employeeId, t.getMessage(), t))
-            .onFailure().recoverWithItem(t -> 
-                Response.serverError()
-                        .entity(new ErrorResponse("Internal Server Error", 500))
-                        .build()
-            );
+        return employeeService.findById(employeeId)
+                .onItem().transformToUni(optionalEmployee -> {
+                    if (optionalEmployee != null) {
+                        Employee employee = optionalEmployee;
+                        LOGGER.info("Found employee - ID: {}, Name: {}, Department: {}",
+                                employee.getEmployeeId(),
+                                employee.getFirstName() + " " + employee.getMiddleName() + " " + employee.getLastName(),
+                                employee.getDepartment());
+                        return Uni.createFrom().item(Response.ok(employee).build());
+                    } else {
+                        LOGGER.warn("Employee not found with ID: {}", employeeId);
+                        return Uni.createFrom().item(Response.status(Response.Status.NOT_FOUND)
+                                .entity(new ErrorResponse("Employee not found", 404))
+                                .build());
+                    }
+                })
+                .onFailure().recoverWithItem(f -> Response.serverError()
+                        .entity(new ErrorResponse("Internal Server Error", 500)).build());
     }
 
     @POST
@@ -144,7 +132,7 @@ public class EmployeeController {
                                    .entity(new ErrorResponse("Employee already exists", Response.Status.BAD_REQUEST.getStatusCode()))
                                    .build();
                 });
-        LOGGER.debug("Controller: createEmployee() - end");
+
     }
 
     @PUT
