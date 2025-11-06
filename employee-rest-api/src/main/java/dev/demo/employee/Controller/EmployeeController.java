@@ -16,6 +16,7 @@ import dev.demo.employee.Service.EmployeeService;
 import dev.demo.employee.Utils.ErrorResponse;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.infrastructure.Infrastructure;
+import jakarta.inject.Inject;
 import jakarta.validation.Valid;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
@@ -44,6 +45,7 @@ public class EmployeeController {
     public final EmployeeService employeeService;
 
     // Constructor Injection
+    @Inject
     public EmployeeController(EmployeeService employeeService) {
         this.employeeService = employeeService;
     }
@@ -120,11 +122,20 @@ public class EmployeeController {
                             content = @Content(mediaType = "application/json")),
             }
     )
-    public Response createEmployee(@RequestBody(required = true) @Valid Employee employee) {
-        employeeService.save(employee);
-        URI employeeUrl = URI.create("/api/v1/employees/" + employee.getEmployeeId());
-        LOGGER.info("New employee added at URL {}" + employeeUrl);
-        return Response.created(employeeUrl).build();
+    public Uni<Response> createEmployee(@RequestBody(required = true) @Valid Employee employee) {
+
+        LOGGER.debug("Controller: createEmployee() - start");
+        return employeeService.save(employee)
+                .onItem().transform(savedEmployee -> Response.ok(savedEmployee)
+                .status(Response.Status.CREATED).build())
+                .onFailure().invoke(f -> LOGGER.error("Controller: createEmployee() - error creating employee", f))
+                .onFailure().recoverWithItem(f -> {
+                    LOGGER.warn("Controller: createEmployee() - employee already exists", f);
+                    return Response.status(Response.Status.BAD_REQUEST)
+                                   .entity(new ErrorResponse("Employee already exists", Response.Status.BAD_REQUEST.getStatusCode()))
+                                   .build();
+                });
+        LOGGER.debug("Controller: createEmployee() - end");
     }
 
     @PUT
