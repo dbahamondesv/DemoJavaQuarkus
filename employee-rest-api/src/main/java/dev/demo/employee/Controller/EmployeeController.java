@@ -82,26 +82,18 @@ public class EmployeeController {
                }
     )
     public Uni<Response> getEmployeeById(@PathParam("employeeId") Long employeeId) {
-
         LOGGER.debug("Starting request to fetch employee with ID: {}", employeeId);
         return employeeService.findById(employeeId)
-                .onItem().transformToUni(optionalEmployee -> {
-                    if (optionalEmployee != null) {
-                        Employee employee = optionalEmployee;
-                        LOGGER.info("Found employee - ID: {}, Name: {}, Department: {}",
-                                employee.getEmployeeId(),
-                                employee.getFirstName() + " " + employee.getMiddleName() + " " + employee.getLastName(),
-                                employee.getDepartment());
-                        return Uni.createFrom().item(Response.ok(employee).build());
-                    } else {
-                        LOGGER.warn("Employee not found with ID: {}", employeeId);
-                        return Uni.createFrom().item(Response.status(Response.Status.NOT_FOUND)
-                                .entity(new ErrorResponse("Employee not found", 404))
-                                .build());
-                    }
+                .onItem().transform(employee -> {
+                    LOGGER.info("Found employee with ID: {}", employeeId);
+                    return Response.ok(employee).build();
                 })
-                .onFailure().recoverWithItem(f -> Response.serverError()
-                        .entity(new ErrorResponse("Internal Server Error", 500)).build());
+                .onFailure(NotFoundException.class).recoverWithItem(f -> {
+                    LOGGER.warn("Controller: getEmployeeById({}) - employee not found", employeeId);
+                    return Response.status(Response.Status.NOT_FOUND)
+                                   .entity(new ErrorResponse(f.getMessage(), Response.Status.NOT_FOUND.getStatusCode()))
+                                   .build();
+                });
     }
 
     @POST
@@ -123,14 +115,12 @@ public class EmployeeController {
 
         LOGGER.debug("Controller: createEmployee() - start");
         return employeeService.save(employee)
-                .onItem().transform(savedEmployee -> Response.ok(savedEmployee)
-                .status(Response.Status.CREATED).build())
-                .onFailure().invoke(f -> LOGGER.error("Controller: createEmployee() - error creating employee", f))
+                .onItem().transform(savedEmployee -> Response.status(Response.Status.CREATED).entity(savedEmployee).build())
                 .onFailure().recoverWithItem(f -> {
-                    LOGGER.warn("Controller: createEmployee() - employee already exists", f);
-                    return Response.status(Response.Status.BAD_REQUEST)
-                                   .entity(new ErrorResponse("Employee already exists", Response.Status.BAD_REQUEST.getStatusCode()))
-                                   .build();
+                    // This is a generic error handler. A specific exception for duplicates would be better.
+                    LOGGER.error("Controller: createEmployee() - error creating employee", f);
+                    ErrorResponse error = new ErrorResponse("Error creating employee. It might already exist or data is invalid.", Response.Status.BAD_REQUEST.getStatusCode());
+                    return Response.status(Response.Status.BAD_REQUEST).entity(error).build();
                 });
 
     }
@@ -164,6 +154,12 @@ public class EmployeeController {
                     return Response.status(Response.Status.NOT_FOUND)
                                    .entity(new ErrorResponse(f.getMessage(), Response.Status.NOT_FOUND.getStatusCode()))
                                    .build();
+                })
+                .onFailure().recoverWithItem(f -> {
+                    LOGGER.error("Controller: updateEmployee({}) - error updating employee", employeeId, f);
+                    return Response.serverError()
+                                   .entity(new ErrorResponse("Internal Server Error", Response.Status.INTERNAL_SERVER_ERROR.getStatusCode()))
+                                   .build();
                 });
     }
 
@@ -173,29 +169,33 @@ public class EmployeeController {
     @Operation(summary = "Delete an employee by ID")
     @APIResponses(
             value = {
-                    @APIResponse(
-                            responseCode = "200",
-                            description = "Employee deleted successfully",
-                            content = @Content(mediaType = "application/json")),
+                    @APIResponse(responseCode = "204", description = "Employee deleted successfully"),
                     @APIResponse(
                             responseCode = "404",
                             description = "Employee not found",
-                            content = @Content(mediaType = "application/json")),
+                            content = @Content(mediaType = "application/json",
+                                    schema = @Schema(implementation = ErrorResponse.class))),
             }
     )
     public Uni<Response> deleteEmployee(@PathParam("employeeId") Long employeeId){
-
-    return employeeService.findById(employeeId)
+        LOGGER.debug("Controller: deleteEmployee({}) - start", employeeId);
+        return employeeService.deleteById(employeeId)
         .onItem().transform(deleted -> {
-            if(deleted != null){
-                return Response.ok().build();
+            if(deleted){
+                LOGGER.info("Controller: deleteEmployee({}) - employee deleted successfully", employeeId);
+                return Response.status(Response.Status.NO_CONTENT).build();
             } else {
-                return Response.status(Response.Status.NOT_FOUND).build();
+                LOGGER.warn("Controller: deleteEmployee({}) - employee not found", employeeId);
+                return Response.status(Response.Status.NOT_FOUND)
+                               .entity(new ErrorResponse("Employee not found with id: " + employeeId, Response.Status.NOT_FOUND.getStatusCode()))
+                               .build();
             }
         })
         .onFailure().recoverWithItem(f -> {
             LOGGER.error("Controller: deleteEmployee({}) - error deleting employee", employeeId, f);
-            return Response.serverError().build();
+            return Response.serverError()
+                           .entity(new ErrorResponse("Internal Server Error", Response.Status.INTERNAL_SERVER_ERROR.getStatusCode()))
+                           .build();
         });
     }
 }

@@ -1,16 +1,13 @@
-package dev.demo.employee.Service;
-
 import java.util.List;
-import java.util.stream.Collectors;
-
-import dev.demo.employee.Mappers.EmployeeMapper;
-import dev.demo.employee.Model.Employee;
+import java.util.stream.Collectors; 
+import dev.demo.employee.Mappers.EmployeeMapper; // This line is kept as it is used in the code
+import dev.demo.employee.Model.Employee; 
+import io.quarkus.hibernate.reactive.panache.common.With  ReactiveTransactional;
 import dev.demo.employee.Repository.EmployeeRepository;
 import io.smallrye.mutiny.infrastructure.Infrastructure;
 import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import jakarta.transaction.Transactional;
 import jakarta.ws.rs.NotFoundException;
 
 import org.slf4j.Logger;
@@ -22,8 +19,7 @@ public class EmployeeService {
     
     private static final Logger LOGGER = LoggerFactory.getLogger(EmployeeService.class);
     
-    @Inject
-    private final EmployeeRepository employeeRepository;
+    private final EmployeeRepository employeeRepository; // @Inject removed, constructor injection is used
     private final EmployeeMapper employeeMapper;
 
     //Constructor Injection
@@ -36,67 +32,53 @@ public class EmployeeService {
     public Uni<List<Employee>> findAll()
     {
         LOGGER.debug("Service.findAll() - init");
-        // It's better to ensure blocking calls run on a worker thread
-        return Uni.createFrom().item(() -> employeeRepository.listAll())
-                .map(entities -> entities.stream()
-                .map(employeeMapper::toDomain)
+        // Use the reactive `listAll` which returns Uni<List<Entity>> directly
+        return employeeRepository.listAll() // This returns Uni<List<EmployeeEntity>>
+                .onItem().transform(entities -> entities.stream() // entities is List<EmployeeEntity>
+                .map(employeeMapper::toDomain) // map each EmployeeEntity to Employee
                 .collect(Collectors.toList()))
                 .invoke(list -> LOGGER.info("Service.findAll() - found {} employees", list.size()))
-                .runSubscriptionOn(Infrastructure.getDefaultWorkerPool())
                 .onFailure().invoke(f -> LOGGER.error("Service.findAll() - failed to find all employees", f));
-        
     }
 
     public Uni<Employee> findById(long employeeId) {
         LOGGER.debug("Service: findById({}) - start", employeeId);
-        
-        return Uni.createFrom().item(() -> employeeRepository.findByIdOptional(employeeId))
-                .runSubscriptionOn(Infrastructure.getDefaultWorkerPool())
-                .map(optionalEntity -> 
-                    optionalEntity.orElseThrow(() -> 
-                        new NotFoundException("Employee not found with id: " + employeeId)))
-                .map(entity -> employeeMapper.toDomain(entity))
+        // Use the reactive `findById` which returns Uni<Entity>
+        return employeeRepository.findById(employeeId)
+                .onItem().ifNull().failWith(() -> new NotFoundException("Employee not found with id: " + employeeId))
+                .onItem().ifNotNull().transform(employeeMapper::toDomain)
                 .invoke(employee -> LOGGER.info("Service: findById({}) - employee found", employeeId))
                 .onFailure().invoke(f -> LOGGER.error("Service: findById({}) - failed to find employee", employeeId, f));
-
     }
 
-    
+    @ReactiveTransactional
     public Uni<Employee> save(Employee employee)
     {
         LOGGER.debug("Service: save() - init");
         var entity = employeeMapper.toEntity(employee);
-
-        return Uni.createFrom().item(()->{
-            // persist is a blocking operation
-            employeeRepository.persist(entity);
-            return employeeMapper.toDomain(entity);
-        })
-        .invoke(saved -> LOGGER.info("Service: save() - saved employee successfully"))
-        .runSubscriptionOn(Infrastructure.getDefaultWorkerPool())
+        // Use persistAndFlush to get the persisted entity back with its ID
+        return employeeRepository.persistAndFlush(entity)
+        .onItem().transform(persistedEntity -> employeeMapper.toDomain(persistedEntity))
+        .invoke(saved -> LOGGER.info("Service: save() - saved employee successfully with id {}", saved.getEmployeeId()))
         .onFailure().invoke(f -> LOGGER.error("Service: save() - failed to save employee", f));
     }
 
-    @Transactional
+    @ReactiveTransactional
     public Uni<Employee> update(long employeeId, Employee employee) {
-        return Uni.createFrom().item(() -> employeeRepository.findByIdOptional(employeeId))
-                .runSubscriptionOn(Infrastructure.getDefaultWorkerPool())
-                .onItem().ifNotNull().transformToUni(entity -> {
-                    var updatedEntity = employeeMapper.toEntity(employee);
-                    updatedEntity.setEmployeeId(employeeId); // Make sure the ID doesn't change
-                    // Panache's persist() handles the update if the entity already exists
-                    employeeRepository.persist(updatedEntity);
-                    return Uni.createFrom().item(employeeMapper.toDomain(updatedEntity));
+        return employeeRepository.findById(employeeId)
+                .onItem().ifNotNull().transformToUni(entity -> { // entity is the object from the DB
+                    employeeMapper.updateEntityFromDomain(employee, entity); // Update the DB entity with the new data
+                    return employeeRepository.persistAndFlush(entity).map(persistedEntity -> employeeMapper.toDomain(persistedEntity));
                 })
                 .onItem().ifNull().failWith(() -> new NotFoundException("Employee not found with id: " + employeeId))
                 .invoke(e -> LOGGER.info("Service: update({}) - employee updated successfully", employeeId))
                 .onFailure().invoke(f -> LOGGER.error("Service: update({}) - update failed", employeeId, f));
     }
 
-    @Transactional
+    @ReactiveTransactional
     public Uni<Boolean> deleteById(Long id) {
-        return Uni.createFrom().item(() -> employeeRepository.deleteById(id))
-                .runSubscriptionOn(Infrastructure.getDefaultWorkerPool())
+        // Use the reactive `deleteById` which returns Uni<Boolean>
+        return employeeRepository.deleteById(id)
                 .invoke(deleted -> {
                     if (deleted) {
                         LOGGER.info("Service: deleteById({}) - employee deleted successfully", id);
