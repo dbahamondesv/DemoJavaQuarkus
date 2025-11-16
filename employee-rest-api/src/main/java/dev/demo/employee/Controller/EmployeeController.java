@@ -48,6 +48,7 @@ public class EmployeeController {
 
     @GET
     @Operation(summary = "Returns all existing employees")
+        @Path("getAll")
     @APIResponses(value = {
             @APIResponse(responseCode = "200", description = "Get All Employees", content = @Content(mediaType = "application/json", schema = @Schema(type = SchemaType.ARRAY, implementation = Employee.class)))
     })
@@ -65,7 +66,7 @@ public class EmployeeController {
     }
 
     @GET
-    @Path("/{employeeId}")
+    @Path("getById/{employeeId}")
     @Operation(summary = "Returns employee by employeeId")
     @APIResponses(
             value = {
@@ -97,6 +98,7 @@ public class EmployeeController {
     }
 
     @POST
+      @Path("/add")
     @Operation(summary = "Adds a new employee")
     @APIResponses(
             value = {
@@ -126,22 +128,11 @@ public class EmployeeController {
     }
 
     @PUT
-    @Path("/{employeeId}")
+    @Path("/update/{employeeId}")
     @Operation(summary = "Updates an existing employee")
-    @APIResponses(
-            value = {
-                    @APIResponse(
-                            responseCode = "200",
-                            description = "Employee updated successfully",
-                            content = @Content(mediaType = "application/json",
-                                    schema = @Schema(type = SchemaType.OBJECT, implementation = Employee.class))),
-                    @APIResponse(
-                            responseCode = "404",
-                            description = "Employee not found",
-                            content = @Content(mediaType = "application/json",
-                                    schema = @Schema(implementation = ErrorResponse.class))),
-            }
-    )
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+
     public Uni<Response> updateEmployee(@PathParam("employeeId") Long employeeId, @RequestBody(required = true) @Valid Employee employee) {
         LOGGER.debug("Controller: updateEmployee({}) - start", employeeId);
         return employeeService.update(employeeId, employee)
