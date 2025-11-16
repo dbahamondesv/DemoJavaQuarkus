@@ -57,10 +57,10 @@ public class EmployeeController {
         LOGGER.debug("Starting request to fetch all employees");
         return employeeService.findAll()
         .onItem().transform(employees -> Response.ok(employees).build())
+        .onFailure().invoke(f -> LOGGER.error("Controller: getAllEmployees() - Error fetching all employees", f))
         .onFailure().recoverWithItem(f -> {
-            LOGGER.error("Error fetching all employees", f);
             return Response.serverError()
-                           .entity(new ErrorResponse("Internal Server Error", 500))
+                           .entity(new ErrorResponse("Internal Server Error while fetching employees.", Response.Status.INTERNAL_SERVER_ERROR.getStatusCode()))
                            .build();
         });
     }
@@ -94,6 +94,12 @@ public class EmployeeController {
                     return Response.status(Response.Status.NOT_FOUND)
                                    .entity(new ErrorResponse(f.getMessage(), Response.Status.NOT_FOUND.getStatusCode()))
                                    .build();
+                })
+                .onFailure().invoke(f -> LOGGER.error("Controller: getEmployeeById({}) - error fetching employee", employeeId, f))
+                .onFailure().recoverWithItem(f -> {
+                    return Response.serverError()
+                                   .entity(new ErrorResponse("Internal Server Error", Response.Status.INTERNAL_SERVER_ERROR.getStatusCode()))
+                                   .build();
                 });
     }
 
@@ -118,9 +124,10 @@ public class EmployeeController {
         LOGGER.debug("Controller: createEmployee() - start");
         return employeeService.save(employee)
                 .onItem().transform(savedEmployee -> Response.status(Response.Status.CREATED).entity(savedEmployee).build())
+                // Usamos invoke() para el efecto secundario de registrar el error.
+                .onFailure().invoke(f -> LOGGER.error("Controller: createEmployee() - error creating employee", f))
+                // Usamos recoverWithItem() para transformar el fallo en una respuesta HTTP de error.
                 .onFailure().recoverWithItem(f -> {
-                    // This is a generic error handler. A specific exception for duplicates would be better.
-                    LOGGER.error("Controller: createEmployee() - error creating employee", f);
                     ErrorResponse error = new ErrorResponse("Error creating employee. It might already exist or data is invalid.", Response.Status.BAD_REQUEST.getStatusCode());
                     return Response.status(Response.Status.BAD_REQUEST).entity(error).build();
                 });
@@ -147,7 +154,7 @@ public class EmployeeController {
                                    .build();
                 })
                 .onFailure().recoverWithItem(f -> {
-                    LOGGER.error("Controller: updateEmployee({}) - error updating employee", employeeId, f);
+                    LOGGER.error("Controller: updateEmployee({}) - unexpected error updating employee", employeeId, f);
                     return Response.serverError()
                                    .entity(new ErrorResponse("Internal Server Error", Response.Status.INTERNAL_SERVER_ERROR.getStatusCode()))
                                    .build();
@@ -183,7 +190,7 @@ public class EmployeeController {
             }
         })
         .onFailure().recoverWithItem(f -> {
-            LOGGER.error("Controller: deleteEmployee({}) - error deleting employee", employeeId, f);
+            LOGGER.error("Controller: deleteEmployee({}) - unexpected error deleting employee", employeeId, f);
             return Response.serverError()
                            .entity(new ErrorResponse("Internal Server Error", Response.Status.INTERNAL_SERVER_ERROR.getStatusCode()))
                            .build();

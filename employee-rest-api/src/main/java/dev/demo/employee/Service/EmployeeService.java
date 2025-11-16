@@ -52,21 +52,23 @@ public class EmployeeService {
     }
 
     @WithTransaction
-    public Uni<Void> save(Employee employee) {
+    public Uni<Employee> save(Employee employee) {
         LOGGER.debug("Service: save() - init");
         var entity = employeeMapper.toEntity(employee);
-        employeeRepository.persistAndFlush(entity); // ejecuta y no retorna nada
-        return Uni.createFrom().voidItem()
-                .invoke(() -> LOGGER.info("Service: save() - saved employee successfully"));
+        return employeeRepository.persistAndFlush(entity)
+                .map(employeeMapper::toDomain)
+                .invoke(() -> LOGGER.info("Service: save() - saved employee successfully"))
+                .onFailure().invoke(f -> LOGGER.error("Service: save() - failed to save employee", f));
     }
 
     @WithTransaction
     public Uni<Employee> update(long employeeId, Employee employee) {
+        LOGGER.debug("Service: update({}) - start", employeeId);
         return employeeRepository.findById(employeeId)
                 .onItem().ifNotNull().transformToUni(entity -> {
                     employeeMapper.updateEntityFromDomain(employee, entity);
-                    employeeRepository.persistAndFlush(entity); // ejecuta pero no retorna nada
-                    return Uni.createFrom().item(employeeMapper.toDomain(entity));
+                    // persistAndFlush devuelve un Uni, que debemos retornar para mantener la cadena reactiva
+                    return employeeRepository.persistAndFlush(entity).map(employeeMapper::toDomain);
                 })
                 .onItem().ifNull().failWith(() -> new NotFoundException("Employee not found with id: " + employeeId))
                 .invoke(e -> LOGGER.info("Service: update({}) - employee updated successfully", employeeId))
