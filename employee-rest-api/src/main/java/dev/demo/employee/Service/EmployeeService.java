@@ -1,77 +1,91 @@
 package dev.demo.employee.Service;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
-
-import dev.demo.employee.Entity.EmployeeEntity;
-import dev.demo.employee.Mappers.EmployeeMapper;
+import dev.demo.employee.Mappers.EmployeeMapper; // This line is kept as it is used in the code
 import dev.demo.employee.Model.Employee;
 import dev.demo.employee.Repository.EmployeeRepository;
+import io.quarkus.hibernate.reactive.panache.common.WithTransaction;
+import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.transaction.Transactional;
+import jakarta.inject.Inject;
 import jakarta.ws.rs.NotFoundException;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @ApplicationScoped
 public class EmployeeService {
-    
-    private final EmployeeRepository employeeRepository;
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(EmployeeService.class);
+
+    private final EmployeeRepository employeeRepository; // @Inject removed, constructor injection is used
     private final EmployeeMapper employeeMapper;
 
-    //Constructor Injection
+    // Constructor Injection
+    @Inject
     public EmployeeService(EmployeeRepository employeeRepository, EmployeeMapper employeeMapper) {
         this.employeeRepository = employeeRepository;
-        this.employeeMapper = employeeMapper;  
+        this.employeeMapper = employeeMapper;
     }
 
-    public List<Employee> findAll()
-    {
-        return employeeRepository.findAll()
-                .stream()
+    @WithTransaction
+    public Uni<List<Employee>> findAll() {
+        LOGGER.debug("Service.findAll() - init");
+        return employeeRepository.listAll()
+                .map(entities -> entities.stream()
+                        .map(employeeMapper::toDomain)
+                        .collect(Collectors.toList()))
+                .invoke(list -> LOGGER.info("Service.findAll() - found {} employees", list.size()))
+                .onFailure().invoke(f -> LOGGER.error("Service.findAll() - failed to find all employees", f));
+    }
+
+    @WithTransaction
+    public Uni<Employee> findById(long employeeId) {
+        LOGGER.debug("Service: findById({}) - start", employeeId);
+        return employeeRepository.findById(employeeId)
+                .onItem().ifNull().failWith(() -> new NotFoundException("Employee not found with id: " + employeeId))
+                .onItem().ifNotNull().transform(employeeMapper::toDomain)
+                .invoke(employee -> LOGGER.info("Service: findById({}) - employee found", employeeId))
+                .onFailure()
+                .invoke(f -> LOGGER.error("Service: findById({}) - failed to find employee", employeeId, f));
+    }
+
+    @WithTransaction
+    public Uni<Employee> save(Employee employee) {
+        LOGGER.debug("Service: save() - init");
+        var entity = employeeMapper.toEntity(employee);
+        return employeeRepository.persistAndFlush(entity)
                 .map(employeeMapper::toDomain)
-                .collect(Collectors.toList());
+                .invoke(() -> LOGGER.info("Service: save() - saved employee successfully"))
+                .onFailure().invoke(f -> LOGGER.error("Service: save() - failed to save employee", f));
     }
 
-    public Optional<Employee> findById(long employeeId)
-    {
-            return employeeRepository.findByIdOptional(employeeId)
-                   .map(employeeMapper::toDomain);
+    @WithTransaction
+    public Uni<Employee> update(long employeeId, Employee employee) {
+        LOGGER.debug("Service: update({}) - start", employeeId);
+        return employeeRepository.findById(employeeId)
+                .onItem().ifNotNull().transformToUni(entity -> {
+                    employeeMapper.updateEntityFromDomain(employee, entity);
+                    // persistAndFlush devuelve un Uni, que debemos retornar para mantener la cadena reactiva
+                    return employeeRepository.persistAndFlush(entity).map(employeeMapper::toDomain);
+                })
+                .onItem().ifNull().failWith(() -> new NotFoundException("Employee not found with id: " + employeeId))
+                .invoke(e -> LOGGER.info("Service: update({}) - employee updated successfully", employeeId))
+                .onFailure().invoke(f -> LOGGER.error("Service: update({}) - update failed", employeeId, f));
     }
 
-    @Transactional
-    public void save(Employee employee)
-    {
-        EmployeeEntity employeeEntity = employeeMapper.toEntity(employee);
-        employeeRepository.persist(employeeEntity);
+    @WithTransaction
+    public Uni<Boolean> deleteById(Long id) {
+        // Use the reactive `deleteById` which returns Uni<Boolean>
+        return employeeRepository.deleteById(id).invoke(deleted -> {
+            if (deleted) {
+                LOGGER.info("Service: deleteById({}) - employee deleted successfully", id);
+            } else {
+                LOGGER.warn("Service: deleteById({}) - employee not found", id);
+            }
+        })
+                .onFailure().invoke(f -> LOGGER.error("Service: deleteById({}) - failed to delete employee", id, f));
     }
 
-    @Transactional
-    public void update(long employeeId, Employee employee)
-    {
-        Optional<EmployeeEntity> OptionalEmployeeEntity = employeeRepository.findByIdOptional(employeeId);
-
-        if(OptionalEmployeeEntity.isEmpty())
-        {
-            throw new NotFoundException(String.format("No Employee found with employeeId[%s] " + employee.getEmployeeId()));
-        }
-
-        EmployeeEntity employeeEntity = OptionalEmployeeEntity.get();
-
-        employeeEntity.setEmployeeId(employeeId);
-        employeeEntity.setFirstName(employee.getFirstName());
-        employeeEntity.setMiddleName(employee.getMiddleName());
-        employeeEntity.setLastName(employee.getLastName());
-        employeeEntity.setDepartment(employee.getDepartment());
-        employeeEntity.setEmailAddress(employee.getEmailAddress());
-        employeeEntity.setPhoneNumber(employee.getPhoneNumber());
-
-        employeeRepository.persist(employeeEntity);
-    }
-
-    @Transactional
-    public void delete(Employee employee)
-    {
-        EmployeeEntity employeeEntity = employeeMapper.toEntity(employee);
-        employeeRepository.delete(employeeEntity);
-    }
 }

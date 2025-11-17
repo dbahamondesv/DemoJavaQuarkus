@@ -1,9 +1,9 @@
 package dev.demo.employee.Repository;
 import dev.demo.employee.Entity.EmployeeEntity;
-import io.quarkus.hibernate.orm.panache.PanacheRepositoryBase;
 import jakarta.enterprise.context.ApplicationScoped;
+import io.quarkus.hibernate.reactive.panache.PanacheRepositoryBase;
 
 @ApplicationScoped
-public class EmployeeRepository implements PanacheRepositoryBase<EmployeeEntity,Long> {
-    
+public class EmployeeRepository implements PanacheRepositoryBase<EmployeeEntity, Long> {
+
 }

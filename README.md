@@ -2,7 +2,7 @@
 
 Una API REST desarrollada con Quarkus para la gestión de empleados. Proporciona operaciones CRUD (Crear, Leer, Actualizar, Eliminar) para entidades de empleados con persistencia en PostgreSQL.
 
-## Tecnologías
+## 🚀 Tecnologías
 
 - Java 21
 - [Quarkus](https://quarkus.io/) 3.28.5
@@ -13,7 +13,7 @@ Una API REST desarrollada con Quarkus para la gestión de empleados. Proporciona
 - OpenAPI (Swagger) para documentación
 - Docker para contenerización
 
-## Características
+## ✨ Características
 
 - Operaciones CRUD completas para empleados
 - Validación de datos con Hibernate Validator
@@ -21,7 +21,7 @@ Una API REST desarrollada con Quarkus para la gestión de empleados. Proporciona
 - Migraciones de base de datos automáticas con Flyway
 - Soporte para construcción nativa con GraalVM
 
-## Requisitos Previos
+## ✅ Requisitos Previos
 
 - JDK 21
 - Maven 3.9+

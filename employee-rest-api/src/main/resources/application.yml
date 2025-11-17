@@ -2,11 +2,6 @@ quarkus:
   banner:
     enabled: false
   datasource:
-    db-kind: postgresql
-    username: fox
-    password: F0xF1r3
-    jdbc:
-      url: jdbc:postgresql://localhost:5432/employees_db
     devservices:
       enabled: false  # Deshabilitamos devservices ya que tenemos BD externa
   flyway:
