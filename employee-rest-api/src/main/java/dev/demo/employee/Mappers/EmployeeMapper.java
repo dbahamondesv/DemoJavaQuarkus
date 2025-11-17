@@ -10,7 +10,7 @@ import dev.demo.employee.Model.Employee;
 public interface EmployeeMapper {
 
     EmployeeEntity toEntity(Employee domain);
-    Employee toDomain(EmployeeEntity entity);
+    Employee toDomain(Employee employee1);
     void updateEntityFromDomain(Employee source, @MappingTarget EmployeeEntity target);
 
 }
